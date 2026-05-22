@@ -20,20 +20,20 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalln(err)
+		log.Println("error:", err)
 		return
 	}
-	log.Println(".env loaded")
+	log.Println("log: .env loaded")
 
 	dbpool, err := pgxpool.New(context.Background(), os.Getenv("DB_CONN"))
 	if err != nil {
-		log.Fatalln(err)
+		log.Println("error:", err)
 		return
 	}
-	log.Println("db connected, connection pool created")
+	log.Println("log: db connected, connection pool created")
 
 	store := store.NewStore(dbpool)
-	handler := hdl.NewHandler(store)
+	handler := hdl.NewHandler(store, os.Getenv("JWT_SECRET"))
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -46,16 +46,17 @@ func main() {
 			r.Post("/register", handler.RegisterHandler)
 			r.Post("/login", handler.LoginHandler)
 			r.Post("/refresh", handler.RefreshHandler)
+
+			r.Group(func(r chi.Router) {
+				r.Use(mid.RequireAuth)
+
+				r.Post("/logout", handler.LogoutHandler)
+			})
 		})
 
-		r.Group(func(r chi.Router) {
-			r.Use(mid.RequireAuth)
-
-			r.Post("/logout", handler.LogoutHandler)
-		})
 	})
 
-	log.Println("routes registered")
-	log.Println("server started http://localhost:3000")
-	log.Fatal(http.ListenAndServe(":3000", r))
+	log.Println("log: routes registered")
+	log.Println("log: server started http://localhost:3000")
+	log.Fatalln(http.ListenAndServe(":3000", r))
 }

@@ -1,20 +1,27 @@
 package handlers
 
 import (
-	"github.com/holypeachy/EventsAppBackend/store"
 	"net/http"
+
+	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/store"
 )
 
 type Handler struct {
-	store *store.Store
+	store     *store.Store
+	jwtSecret string
 }
 
-func NewHandler(store *store.Store) *Handler {
-	return &Handler{store}
+func NewHandler(store *store.Store, jwtSecret string) *Handler {
+	if jwtSecret == "" {
+		panic("JWT Secret is empty")
+	}
+	return &Handler{
+		store:     store,
+		jwtSecret: jwtSecret,
+	}
 }
 
 func (h *Handler) HealthHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "ok"}`))
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "ok"})
 }

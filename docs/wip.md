@@ -11,8 +11,10 @@
   go get github.com/google/uuid
 
 ## To Do:
-- Add boilerplate (chi) and setup .env
-- Set up db
-- Set up database connection
-- Set up goose
+- implement /api/v1/auth/*
+- implement auth middleware
 - 
+
+## Done:
+- /register
+- /login
