@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/auth"
@@ -21,6 +22,14 @@ type RegisterModel struct {
 type LoginModel struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type RefreshModel struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+type LogoutModel struct {
+	RefreshToken string `json:"refreshToken"`
 }
 
 type LoginResponse struct {
@@ -65,7 +74,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, rawRefresh, err := h.issueTokens(r.Context(), user.Id)
+	accessToken, rawRefresh, err := h.issueLoginTokens(r.Context(), user.Id)
 	if err != nil {
 		log.Println("error:", err)
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
@@ -119,7 +128,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, rawRefresh, err := h.issueTokens(r.Context(), user.Id)
+	accessToken, rawRefresh, err := h.issueLoginTokens(r.Context(), user.Id)
 	if err != nil {
 		log.Println("error:", err)
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
@@ -143,18 +152,78 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "ok"}`))
+	var model RefreshModel
+
+	err := json.NewDecoder(r.Body).Decode(&model)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
+		return
+	}
+
+	err = model.Validate()
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	token, err := h.store.GetRefreshRowByHash(r.Context(), auth.HashRefreshToken(model.RefreshToken))
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if time.Now().After(token.ExpiresAt) {
+		log.Println("log: token expired, login again")
+		err := h.store.DeleteRefreshTokenById(r.Context(), token.Id)
+		if err != nil {
+			log.Println("error: unable to delete token by id\n", err)
+		}
+		helpers.WriteErr(w, http.StatusUnauthorized, "login again")
+		return
+	}
+
+	access, err := auth.CreateAccessToken(token.UserId, h.jwtSecret)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	log.Println("log: token valid, sending new access token")
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"accessToken": access})
 }
 
 func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "ok"}`))
+	var model LogoutModel
+
+	err := json.NewDecoder(r.Body).Decode(&model)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
+		return
+	}
+
+	err = model.Validate()
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.store.DeleteRefreshTokenByHash(r.Context(), auth.HashRefreshToken(model.RefreshToken))
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Println("log: user logged out")
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user logged out"})
 }
 
-func (h *Handler) issueTokens(ctx context.Context, userId uuid.UUID) (accessToken string, rawRefresh string, err error) {
+func (h *Handler) issueLoginTokens(ctx context.Context, userId uuid.UUID) (accessToken string, rawRefresh string, err error) {
 	rawRefresh, err = auth.GenerateRefreshToken()
 	if err != nil {
 		return "", "", err

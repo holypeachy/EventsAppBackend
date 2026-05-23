@@ -33,7 +33,9 @@ func main() {
 	log.Println("log: db connected, connection pool created")
 
 	store := store.NewStore(dbpool)
-	handler := hdl.NewHandler(store, os.Getenv("JWT_SECRET"))
+	jwtSecret := os.Getenv("JWT_SECRET")
+	handler := hdl.NewHandler(store, jwtSecret)
+	middle := mid.NewMiddleware(jwtSecret)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -46,12 +48,32 @@ func main() {
 			r.Post("/register", handler.RegisterHandler)
 			r.Post("/login", handler.LoginHandler)
 			r.Post("/refresh", handler.RefreshHandler)
+			r.Post("/logout", handler.LogoutHandler)
+		})
 
-			r.Group(func(r chi.Router) {
-				r.Use(mid.RequireAuth)
+		r.Group(func(r chi.Router) {
+			r.Use(middle.RequireAuth)
 
-				r.Post("/logout", handler.LogoutHandler)
-			})
+			r.Post("/groups", nil)
+			r.Get("/groups", nil)
+			r.Get("/groups/{groupId}", nil)
+
+			r.Post("/groups/join", nil)
+			r.Get("/groups/{groupId}/members", nil)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middle.RequireGroupMember)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middle.RequireGroupAdmin)
+
+			r.Post("/groups/{groupId}/invite-code/regen", nil)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(middle.RequireGroupOwner)
 		})
 
 	})

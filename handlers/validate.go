@@ -29,3 +29,19 @@ func (model *LoginModel) Validate() error {
 
 	return nil
 }
+
+func (model *RefreshModel) Validate() error {
+	if strings.TrimSpace(model.RefreshToken) == "" {
+		return errors.New("refreshToken cannot be empty")
+	}
+
+	return nil
+}
+
+func (model *LogoutModel) Validate() error {
+	if strings.TrimSpace(model.RefreshToken) == "" {
+		return errors.New("refreshToken cannot be empty")
+	}
+
+	return nil
+}

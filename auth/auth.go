@@ -11,17 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type AccessClaims struct {
-	jwt.RegisteredClaims
-}
+type ContextKey string
+
+const UserIdContextKey ContextKey = "userId"
 
 func CreateAccessToken(userId uuid.UUID, jwtSecret string) (string, error) {
-	claims := AccessClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   userId.String(),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)),
-		},
+	claims := jwt.RegisteredClaims{
+		Subject:   userId.String(),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
