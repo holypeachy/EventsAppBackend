@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/go-chi/httprate"
 	hdl "github.com/holypeachy/EventsAppBackend/handlers"
 	mid "github.com/holypeachy/EventsAppBackend/middleware"
 	"github.com/holypeachy/EventsAppBackend/store"
@@ -45,6 +47,8 @@ func main() {
 		r.Get("/health", handler.HealthHandler)
 
 		r.Route("/auth", func(r chi.Router) {
+			r.Use(httprate.LimitByIP(50, time.Minute))
+
 			r.Post("/register", handler.RegisterHandler)
 			r.Post("/login", handler.LoginHandler)
 			r.Post("/refresh", handler.RefreshHandler)
@@ -69,11 +73,16 @@ func main() {
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupAdmin)
 
-				r.Post("/groups/{groupId}/invite-code/regen", nil)
+				r.Post("/groups/{groupId}/invite-code/regen", handler.RegenInviteCodeHandler)
+				r.Patch("/groups/{groupId}", nil)
+				r.Patch("/groups/{groupId}/members/{userId}", nil)
+				r.Delete("/groups/{groupId}/members/{userId}", nil)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupOwner)
+
+				r.Delete("groups/{groupId}", nil)
 			})
 		})
 

@@ -79,7 +79,7 @@ func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups, err := h.store.GetGroupsUserBelongs(r.Context(), userId)
+	groups, err := h.store.GetGroupsUserBelongsTo(r.Context(), userId)
 	if err != nil {
 		log.Println("error: failed to get grops user belongs to")
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
@@ -195,4 +195,32 @@ func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request)
 
 	log.Println("log: group members sent")
 	helpers.WriteJson(w, http.StatusOK, users)
+}
+
+func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, "groupId")
+
+	groupId, err := uuid.Parse(groupIdString)
+	if err != nil {
+		log.Println("error: invalid group id", groupId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	code, err := helpers.GenerateNewInviteCode(8)
+	if err != nil {
+		log.Println("error: failed to generate code\n", err)
+		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	err = h.store.UpdateGroupInviteCode(r.Context(), groupId, code)
+	if err != nil {
+		log.Println("error: failed to generate code\n", err)
+		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	log.Println("log: code regenerated succesfully")
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"inviteCode": code})
 }

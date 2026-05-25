@@ -165,7 +165,7 @@ func (s *Store) DeleteRefreshTokenByHash(ctx context.Context, hashedToken string
 }
 
 func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc string) (uuid.UUID, error) {
-	code, err := helpers.GenerateNewInvite(8)
+	code, err := helpers.GenerateNewInviteCode(helpers.InviteCodeLength)
 	if err != nil {
 		log.Println("error: ", err)
 		return uuid.UUID{}, err
@@ -184,7 +184,7 @@ func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc st
 		return uuid.UUID{}, err
 	}
 
-	err = s.AssignGroupToUser(ctx, userId, groupId, Owner)
+	err = s.assignGroupToUser(ctx, userId, groupId, Owner)
 	if err != nil {
 		log.Println("error: ", err)
 		return uuid.UUID{}, err
@@ -193,7 +193,7 @@ func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc st
 	return groupId, nil
 }
 
-func (s *Store) AssignGroupToUser(ctx context.Context, userId uuid.UUID, groupId uuid.UUID, role GroupRole) error {
+func (s *Store) assignGroupToUser(ctx context.Context, userId uuid.UUID, groupId uuid.UUID, role GroupRole) error {
 
 	tags, err := s.pool.Exec(ctx, `
 			INSERT INTO group_members(group_id, user_id, role)
@@ -212,19 +212,19 @@ func (s *Store) AssignGroupToUser(ctx context.Context, userId uuid.UUID, groupId
 }
 
 func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inviteCode string) error {
-	groupId, err := s.GetGroupIdByInviteCode(ctx, inviteCode)
+	groupId, err := s.getGroupIdByInviteCode(ctx, inviteCode)
 	if err != nil {
 		return err
 	}
 
-	err = s.AssignGroupToUser(ctx, userId, groupId, Member)
+	err = s.assignGroupToUser(ctx, userId, groupId, Member)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Store) GetGroupIdByInviteCode(ctx context.Context, inviteCode string) (uuid.UUID, error) {
+func (s *Store) getGroupIdByInviteCode(ctx context.Context, inviteCode string) (uuid.UUID, error) {
 	var groupId uuid.UUID
 	row := s.pool.QueryRow(ctx, `
 			SELECT id FROM groups
@@ -240,7 +240,7 @@ func (s *Store) GetGroupIdByInviteCode(ctx context.Context, inviteCode string) (
 	return groupId, nil
 }
 
-func (s *Store) GetGroupsUserBelongs(ctx context.Context, userId uuid.UUID) (*[]GroupRow, error) {
+func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*[]GroupRow, error) {
 	var groupIds []uuid.UUID
 	rows, err := s.pool.Query(ctx, `
 			SELECT group_id FROM group_members
@@ -391,10 +391,34 @@ func (s *Store) GetGroupMembers(ctx context.Context, groupId uuid.UUID) (*[]User
 	return &users, nil
 }
 
-func (s *Store) IsUserGroupAdmin(ctx context.Context, userId uuid.UUID, groupId uuid.UUID) (bool, error) {
-	return false, nil
+func (s *Store) GetUserRoleInGroup(ctx context.Context, userId uuid.UUID, groupId uuid.UUID) (GroupRole, error) {
+	var role GroupRole
+
+	row := s.pool.QueryRow(ctx, `
+		SELECT role FROM group_members
+		WHERE group_id = $1 AND user_id = $2
+		`, groupId, userId)
+
+	err := row.Scan(&role)
+	if err != nil {
+		log.Println("error:", err)
+		return "", err
+	}
+
+	return role, nil
 }
 
-func (s *Store) IsUserGroupOwner(ctx context.Context, userId uuid.UUID, groupId uuid.UUID) (bool, error) {
-	return false, nil
+func (s *Store) UpdateGroupInviteCode(ctx context.Context, groupId uuid.UUID, code string) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE groups
+		SET invite_code = $1
+		WHERE id = $2
+		`, code, groupId)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("no group updated")
+	}
+	return nil
 }

@@ -11,14 +11,12 @@
   go get github.com/google/uuid
 
 ## To Do:
+- PATCH /groups/{groupId}
+- PATCH /groups/{groupId}/members/{userId}
+- DELETE /groups/{groupId}/members/{userId}
+- DELETE /groups/{groupId}
+## Done:
 - requireGroupMember
 - requireGroupAdmin
 - requireGroupOwner
 - /groups/{groupId}/invite-code/regen
-
-## Done:
-- POST /groups
-- GET /groups
-- GET /groups/{id}
-- POST /groups/join
-- GET /groups/{id}/members

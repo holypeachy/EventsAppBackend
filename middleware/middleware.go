@@ -133,18 +133,18 @@ func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		isAdmin, err := m.store.IsUserGroupAdmin(r.Context(), userId, groupId)
+		role, err := m.store.GetUserRoleInGroup(r.Context(), userId, groupId)
 		if err != nil {
-			log.Println("error: failed to check if user is admin")
+			log.Println("error: failed to get user role")
 			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		if !isAdmin {
-			helpers.WriteErr(w, http.StatusUnauthorized, "user is not admin")
-		} else {
+		if role == store.Admin || role == store.Owner {
 			next.ServeHTTP(w, r)
 			log.Println("log: middleware, user is admin of group")
+		} else {
+			helpers.WriteErr(w, http.StatusUnauthorized, "user is not group admin")
 		}
 	})
 }
@@ -167,15 +167,15 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 			return
 		}
 
-		isOwner, err := m.store.IsUserGroupOwner(r.Context(), userId, groupId)
+		role, err := m.store.GetUserRoleInGroup(r.Context(), userId, groupId)
 		if err != nil {
-			log.Println("error: failed to check if user is owner")
+			log.Println("error: failed to get user role")
 			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 
-		if !isOwner {
-			helpers.WriteErr(w, http.StatusUnauthorized, "user is not owner")
+		if role == store.Owner {
+			helpers.WriteErr(w, http.StatusUnauthorized, "user is not group owner")
 		} else {
 			next.ServeHTTP(w, r)
 			log.Println("log: middleware, user is owner of group")

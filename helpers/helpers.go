@@ -11,6 +11,8 @@ import (
 	"github.com/holypeachy/EventsAppBackend/auth"
 )
 
+const InviteCodeLength int = 8
+
 const inviteCharset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 func WriteJson(w http.ResponseWriter, status int, data any) {
@@ -35,7 +37,7 @@ func ExtractUserId(ctx context.Context) (uuid.UUID, error) {
 	return userId, nil
 }
 
-func GenerateNewInvite(length int) (string, error) {
+func GenerateNewInviteCode(length int) (string, error) {
 	bytes := make([]byte, length)
 
 	_, err := rand.Read(bytes)
