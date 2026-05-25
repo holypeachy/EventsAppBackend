@@ -45,3 +45,22 @@ func (model *LogoutModel) Validate() error {
 
 	return nil
 }
+
+func (model *CreateGroupModel) Validate() error {
+	if strings.TrimSpace(model.Name) == "" {
+		return errors.New("name cannot be empty")
+	}
+	if strings.TrimSpace(model.Description) == "" {
+		return errors.New("description cannot be empty")
+	}
+
+	return nil
+}
+
+func (model *JoinGroupModel) Validate() error {
+	if strings.TrimSpace(model.InviteCode) == "" {
+		return errors.New("invite code cannot be empty")
+	}
+
+	return nil
+}

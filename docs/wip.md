@@ -11,12 +11,14 @@
   go get github.com/google/uuid
 
 ## To Do:
-- POST /groups and GET /groups
 - requireGroupMember
 - requireGroupAdmin
 - requireGroupOwner
+- /groups/{groupId}/invite-code/regen
 
 ## Done:
-- implement /api/v1/auth/*
-- implement auth middleware
-- migration for groups and group_members
+- POST /groups
+- GET /groups
+- GET /groups/{id}
+- POST /groups/join
+- GET /groups/{id}/members
