@@ -174,11 +174,19 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 			return
 		}
 
-		if role == store.Owner {
+		if role != store.Owner {
 			helpers.WriteErr(w, http.StatusUnauthorized, "user is not group owner")
 		} else {
 			next.ServeHTTP(w, r)
 			log.Println("log: middleware, user is owner of group")
 		}
 	})
+}
+
+func (m *MiddleW) RequireEventParticipant(next http.Handler) http.Handler {
+	return next
+}
+
+func (m *MiddleW) RequireEventAdmin(next http.Handler) http.Handler {
+	return next
 }

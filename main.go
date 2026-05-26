@@ -62,27 +62,48 @@ func main() {
 			r.Get("/groups", handler.GetGroupsHandler)
 
 			r.Post("/groups/join", handler.JoinGroup)
+			r.Get("/events", nil)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middle.RequireEventParticipant)
+
+				r.Get("/events/{eventId}", nil)
+				r.Get("/events/{eventId}/participants", nil)
+				r.Patch("/events/{eventId}/participants/{userId}/rsvp", nil) // make sure auth userId = userId
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middle.RequireEventAdmin)
+
+				r.Patch("/events/{eventId}", nil)
+				r.Delete("/events/{eventId}", nil)
+				r.Delete("/events/{eventId}/participants/{userId}", nil)
+
+				r.Post("/events/{eventId}/participants", nil)
+			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupMember)
 
 				r.Get("/groups/{groupId}", handler.GetGroupByIdHandler)
 				r.Get("/groups/{groupId}/members", handler.GetGroupMembersHandler)
+				r.Post("/groups/{groupId}/events", nil)
+				r.Get("/groups/{groupId}/events", nil)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupAdmin)
 
 				r.Post("/groups/{groupId}/invite-code/regen", handler.RegenInviteCodeHandler)
-				r.Patch("/groups/{groupId}", nil)
-				r.Patch("/groups/{groupId}/members/{userId}", nil)
-				r.Delete("/groups/{groupId}/members/{userId}", nil)
+				r.Patch("/groups/{groupId}", handler.PatchGroupHandler)
+				r.Patch("/groups/{groupId}/members/{userId}", handler.UpdateMemberRoleHandler)
+				r.Delete("/groups/{groupId}/members/{userId}", handler.RemoveMemberFromGroupHandler)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupOwner)
 
-				r.Delete("groups/{groupId}", nil)
+				r.Delete("/groups/{groupId}", handler.DeleteGroupHandler)
 			})
 		})
 

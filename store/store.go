@@ -380,7 +380,7 @@ func (s *Store) GetGroupMembers(ctx context.Context, groupId uuid.UUID) (*[]User
 	for rows.Next() {
 		var user UserRow
 
-		err := rows.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash)
+		err := rows.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -419,6 +419,64 @@ func (s *Store) UpdateGroupInviteCode(ctx context.Context, groupId uuid.UUID, co
 	}
 	if tag.RowsAffected() != 1 {
 		return errors.New("no group updated")
+	}
+	return nil
+}
+
+func (s *Store) UpdateGroupInfo(ctx context.Context, groupId uuid.UUID, name, desc string) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE groups
+		SET name = $1, description = $2
+		WHERE id = $3
+		`, name, desc, groupId)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() < 1 {
+		return errors.New("no group updated")
+	}
+	return nil
+}
+
+func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role GroupRole) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE group_members
+		SET role = $1
+		WHERE group_id = $2 AND user_id = $3
+		`, role, groupId, memberId)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() < 1 {
+		return errors.New("no group updated")
+	}
+	return nil
+}
+
+func (s *Store) RemoveMemberFromGroup(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID) error {
+	tag, err := s.pool.Exec(ctx, `
+		DELETE FROM group_members
+		WHERE group_id = $1 AND user_id = $2
+		`, groupId, memberId)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("rows affected" + string(tag.RowsAffected()) + "uh oh")
+	}
+	return nil
+}
+
+func (s *Store) DeleteGroup(ctx context.Context, groupId uuid.UUID) error {
+	tag, err := s.pool.Exec(ctx, `
+		DELETE FROM groups
+		WHERE id = $1
+		`, groupId)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("rows affected" + string(tag.RowsAffected()) + "uh oh")
 	}
 	return nil
 }

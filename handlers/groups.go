@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/store"
 )
 
 type CreateGroupModel struct {
@@ -34,6 +35,15 @@ type UserResponse struct {
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type PatchGroupModel struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type UpdateMemberRoleModel struct {
+	Role string `json:"role"`
 }
 
 func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,4 +233,121 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 
 	log.Println("log: code regenerated succesfully")
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"inviteCode": code})
+}
+
+func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, "groupId")
+
+	groupId, err := uuid.Parse(groupIdString)
+	if err != nil {
+		log.Println("error: invalid group id", groupId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	var model PatchGroupModel
+	err = json.NewDecoder(r.Body).Decode(&model)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
+		return
+	}
+
+	err = model.Validate()
+	if err != nil {
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.store.UpdateGroupInfo(r.Context(), groupId, model.Name, model.Description)
+	if err != nil {
+		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group info updated"})
+}
+
+func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, "groupId")
+
+	groupId, err := uuid.Parse(groupIdString)
+	if err != nil {
+		log.Println("error: invalid group id", groupId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	memberIdString := chi.URLParam(r, "userId")
+
+	memberId, err := uuid.Parse(memberIdString)
+	if err != nil {
+		log.Println("error: invalid group id", memberId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	var model UpdateMemberRoleModel
+	err = json.NewDecoder(r.Body).Decode(&model)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
+		return
+	}
+
+	err = model.Validate()
+	if err != nil {
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.store.UpdateMemberRole(r.Context(), groupId, memberId, store.GroupRole(model.Role))
+	if err != nil {
+		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member role updated"})
+}
+
+func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, "groupId")
+
+	groupId, err := uuid.Parse(groupIdString)
+	if err != nil {
+		log.Println("error: invalid group id", groupId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	memberIdString := chi.URLParam(r, "userId")
+
+	memberId, err := uuid.Parse(memberIdString)
+	if err != nil {
+		log.Println("error: invalid group id", memberId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	err = h.store.RemoveMemberFromGroup(r.Context(), groupId, memberId)
+	if err != nil {
+		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member removed from group"})
+}
+func (h *Handler) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, "groupId")
+
+	groupId, err := uuid.Parse(groupIdString)
+	if err != nil {
+		log.Println("error: invalid group id", groupId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid group id")
+		return
+	}
+
+	err = h.store.DeleteGroup(r.Context(), groupId)
+	if err != nil {
+		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group removed"})
 }

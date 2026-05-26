@@ -9,14 +9,14 @@
   go get github.com/joho/godotenv
   go get github.com/pressly/goose/v3
   go get github.com/google/uuid
+  go get github.com/go-chi/httprate
 
 ## To Do:
+- create migration for events (events and event_participants)
+- implement event endpoints
+
+## Done:
 - PATCH /groups/{groupId}
 - PATCH /groups/{groupId}/members/{userId}
 - DELETE /groups/{groupId}/members/{userId}
 - DELETE /groups/{groupId}
-## Done:
-- requireGroupMember
-- requireGroupAdmin
-- requireGroupOwner
-- /groups/{groupId}/invite-code/regen
