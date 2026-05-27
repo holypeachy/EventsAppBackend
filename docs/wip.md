@@ -12,11 +12,14 @@
   go get github.com/go-chi/httprate
 
 ## To Do:
-- create migration for events (events and event_participants)
 - implement event endpoints
 
+- document API for frontend
+- organize codebase (models, errors, constants)
+- improve logging
+- write tests?
+
 ## Done:
-- PATCH /groups/{groupId}
-- PATCH /groups/{groupId}/members/{userId}
-- DELETE /groups/{groupId}/members/{userId}
-- DELETE /groups/{groupId}
+- create migration for events (events and event_participants)
+- organized store functions into different files
+- wrote db error translation helper

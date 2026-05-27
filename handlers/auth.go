@@ -69,8 +69,8 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := h.store.RegisterUser(r.Context(), model.Username, model.Email, string(hashedPass))
 	if err != nil {
-		log.Println("error:", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -116,8 +116,8 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.store.GetUserByEmail(r.Context(), model.Email)
 	if err != nil {
-		log.Println("error:", err)
-		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -170,8 +170,8 @@ func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.store.GetRefreshRowByHash(r.Context(), auth.HashRefreshToken(model.RefreshToken))
 	if err != nil {
-		log.Println("error:", err)
-		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("log: token expired, login again")
 		err := h.store.DeleteRefreshTokenById(r.Context(), token.Id)
 		if err != nil {
-			log.Println("error: unable to delete token by id\n", err)
+			helpers.HandlePgxError(err)
 		}
 		helpers.WriteErr(w, http.StatusUnauthorized, "login again")
 		return
@@ -214,8 +214,8 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = h.store.DeleteRefreshTokenByHash(r.Context(), auth.HashRefreshToken(model.RefreshToken))
 	if err != nil {
-		log.Println("error:", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 

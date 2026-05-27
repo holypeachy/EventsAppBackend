@@ -72,8 +72,8 @@ func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	groupId, err := h.store.CreateGroup(r.Context(), userId, model.Name, model.Description)
 	if err != nil {
-		log.Println("error:", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -91,8 +91,8 @@ func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 
 	groups, err := h.store.GetGroupsUserBelongsTo(r.Context(), userId)
 	if err != nil {
-		log.Println("error: failed to get grops user belongs to")
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -125,8 +125,8 @@ func (h *Handler) GetGroupByIdHandler(w http.ResponseWriter, r *http.Request) {
 
 	groupRow, err := h.store.GetGroupById(r.Context(), groupId)
 	if err != nil {
-		log.Println("error: failed to get group by id\n", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -168,8 +168,8 @@ func (h *Handler) JoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	err = h.store.JoinGroupByInviteCode(r.Context(), userId, model.InviteCode)
 	if err != nil {
-		log.Println("error: failed to join by invite", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -188,8 +188,8 @@ func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request)
 
 	userRows, err := h.store.GetGroupMembers(r.Context(), groupId)
 	if err != nil {
-		log.Println("error: failed to get group members\n", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -226,8 +226,8 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 
 	err = h.store.UpdateGroupInviteCode(r.Context(), groupId, code)
 	if err != nil {
-		log.Println("error: failed to generate code\n", err)
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
@@ -261,7 +261,8 @@ func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = h.store.UpdateGroupInfo(r.Context(), groupId, model.Name, model.Description)
 	if err != nil {
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group info updated"})
@@ -302,7 +303,8 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 
 	err = h.store.UpdateMemberRole(r.Context(), groupId, memberId, store.GroupRole(model.Role))
 	if err != nil {
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member role updated"})
@@ -329,7 +331,8 @@ func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Re
 
 	err = h.store.RemoveMemberFromGroup(r.Context(), groupId, memberId)
 	if err != nil {
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member removed from group"})
@@ -346,7 +349,8 @@ func (h *Handler) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = h.store.DeleteGroup(r.Context(), groupId)
 	if err != nil {
-		helpers.WriteErr(w, http.StatusInternalServerError, err.Error())
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group removed"})
