@@ -87,8 +87,8 @@ func main() {
 
 				r.Get("/groups/{groupId}", handler.GetGroupByIdHandler)
 				r.Get("/groups/{groupId}/members", handler.GetGroupMembersHandler)
-				r.Post("/groups/{groupId}/events", nil)
-				r.Get("/groups/{groupId}/events", nil)
+				r.Post("/groups/{groupId}/events", handler.CreateEventHandler)   // TODO
+				r.Get("/groups/{groupId}/events", handler.GetGroupEventsHandler) // TODO
 			})
 
 			r.Group(func(r chi.Router) {

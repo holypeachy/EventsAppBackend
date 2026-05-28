@@ -22,6 +22,7 @@ var ErrTokenNotFound = errors.New("token not found")
 var ErrNoGroupUpdated = errors.New("no group updated")
 var ErrGroupNotDeleted = errors.New("no group deleted")
 var ErrGroupMemberNotRemoved = errors.New("no group member removed")
+var ErrInvalidInviteCode = errors.New("invalid invite code")
 
 type APIError struct {
 	Status  int

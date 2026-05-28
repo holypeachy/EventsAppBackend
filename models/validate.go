@@ -1,10 +1,8 @@
-package handlers
+package models
 
 import (
 	"errors"
 	"strings"
-
-	"github.com/holypeachy/EventsAppBackend/store"
 )
 
 func (model *RegisterModel) Validate() error {
@@ -73,10 +71,26 @@ func (model *PatchGroupModel) Validate() error {
 }
 
 func (model *UpdateMemberRoleModel) Validate() error {
-	role := store.GroupRole(strings.TrimSpace(model.Role))
-	if role == store.Admin || role == store.Member {
+	role := GroupRole(strings.TrimSpace(model.Role))
+	if role == Admin || role == Member {
 		return nil
 	}
 
 	return errors.New("updated role must be admin or member")
+}
+
+func (model *EventModel) Validate() error {
+	if strings.TrimSpace(model.Name) == "" {
+		return errors.New("event name cannot be empty")
+	}
+	if model.RsvpDeadline.IsZero() {
+		return errors.New("rsvpDeadline is required")
+	}
+	if model.StartsAt.IsZero() {
+		return errors.New("startsAt is required")
+	}
+	if model.EndsAt.IsZero() {
+		return errors.New("endsAt is required")
+	}
+	return nil
 }

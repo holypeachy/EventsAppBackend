@@ -10,42 +10,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/auth"
 	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type RegisterModel struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginModel struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type RefreshModel struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
-type LogoutModel struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
-type LoginResponse struct {
-	AccessToken  string             `json:"accessToken"`
-	RefreshToken string             `json:"refreshToken"`
-	User         *LoginResponseUser `json:"user"`
-}
-
-type LoginResponseUser struct {
-	Id       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-}
-
 func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	var model RegisterModel
+	var model models.RegisterModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
@@ -81,13 +51,13 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respUser := LoginResponseUser{
+	respUser := models.LoginResponseUser{
 		Id:       user.Id,
 		Username: user.Username,
 		Email:    user.Email,
 	}
 
-	resp := LoginResponse{
+	resp := models.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: rawRefresh,
 		User:         &respUser,
@@ -98,7 +68,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	var model LoginModel
+	var model models.LoginModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
@@ -135,13 +105,13 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respUser := LoginResponseUser{
+	respUser := models.LoginResponseUser{
 		Id:       user.Id,
 		Username: user.Username,
 		Email:    user.Email,
 	}
 
-	resp := LoginResponse{
+	resp := models.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: rawRefresh,
 		User:         &respUser,
@@ -152,7 +122,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
-	var model RefreshModel
+	var model models.RefreshModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
@@ -196,7 +166,7 @@ func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	var model LogoutModel
+	var model models.LogoutModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {

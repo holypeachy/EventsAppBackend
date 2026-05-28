@@ -6,32 +6,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/models"
 )
 
-type UserRow struct {
-	Id           uuid.UUID
-	Username     string
-	Email        string
-	PasswordHash string
-	CreatedAt    time.Time
-}
-
-type RefreshTokenRow struct {
-	Id         uuid.UUID
-	UserId     uuid.UUID
-	TokenHash  string
-	ExpiresAt  time.Time
-	LastUsedAt time.Time
-	CreatedAt  time.Time
-}
-
-func (s *Store) RegisterUser(ctx context.Context, username, email, password string) (*UserRow, error) {
+func (s *Store) RegisterUser(ctx context.Context, username, email, password string) (*models.UsersRow, error) {
 	row := s.pool.QueryRow(ctx, `
 	INSERT INTO users (username, email, password_hash)
 	VALUES ($1,$2,$3)
 	RETURNING *`, username, email, password)
 
-	var user UserRow
+	var user models.UsersRow
 	err := row.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -40,10 +24,10 @@ func (s *Store) RegisterUser(ctx context.Context, username, email, password stri
 	return &user, nil
 }
 
-func (s *Store) GetUserByEmail(ctx context.Context, email string) (*UserRow, error) {
+func (s *Store) GetUserByEmail(ctx context.Context, email string) (*models.UsersRow, error) {
 	row := s.pool.QueryRow(ctx, "SELECT * FROM users WHERE email = $1", email)
 
-	var user UserRow
+	var user models.UsersRow
 	err := row.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -52,10 +36,10 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*UserRow, err
 	return &user, nil
 }
 
-func (s *Store) GetUserById(ctx context.Context, id uuid.UUID) (*UserRow, error) {
+func (s *Store) GetUserById(ctx context.Context, id uuid.UUID) (*models.UsersRow, error) {
 	row := s.pool.QueryRow(ctx, "SELECT * FROM users WHERE id = $1", id)
 
-	var user UserRow
+	var user models.UsersRow
 	err := row.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -79,13 +63,13 @@ func (s *Store) StoreRefreshToken(ctx context.Context, userId uuid.UUID, tokenHa
 	return nil
 }
 
-func (s *Store) GetRefreshRowByHash(ctx context.Context, hashedRefreshToken string) (*RefreshTokenRow, error) {
+func (s *Store) GetRefreshRowByHash(ctx context.Context, hashedRefreshToken string) (*models.RefreshTokenRow, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT * FROM refresh_tokens
 		WHERE token_hash = $1
 		`, hashedRefreshToken)
 
-	var token RefreshTokenRow
+	var token models.RefreshTokenRow
 	err := row.Scan(&token.Id, &token.UserId, &token.TokenHash, &token.ExpiresAt, &token.LastUsedAt, &token.CreatedAt)
 	if err != nil {
 		return nil, err

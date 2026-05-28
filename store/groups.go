@@ -2,140 +2,92 @@ package store
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/models"
 )
 
-type GroupRow struct {
-	Id          uuid.UUID
-	Name        string
-	Description string
-	CreatedBy   uuid.UUID
-	CreatedAt   time.Time
-	InviteCode  string
-}
+func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc string) (*models.GroupsRow, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
 
-type GroupMemberRow struct {
-	GroupId  uuid.UUID
-	UserId   uuid.UUID
-	Role     GroupRole
-	JoinedAt time.Time
-}
-
-type GroupRole string
-
-const (
-	Member GroupRole = "member"
-	Admin  GroupRole = "admin"
-	Owner  GroupRole = "owner"
-)
-
-func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc string) (uuid.UUID, error) {
 	code, err := helpers.GenerateNewInviteCode(helpers.InviteCodeLength)
 	if err != nil {
-		return uuid.UUID{}, err
+		return nil, err
 	}
 
-	row := s.pool.QueryRow(ctx, `
+	var group models.GroupsRow
+	row := tx.QueryRow(ctx, `
 			INSERT INTO groups(name, description, created_by, invite_code)
-			VALUES ($1,$2,$3,$4)
-			RETURNING (id)
+			VALUES ($1, $2, $3, $4)
+			RETURNING *
 		`, name, desc, userId, code)
 
-	var groupId uuid.UUID
-
-	err = row.Scan(&groupId)
+	err = row.Scan(&group.Id, &group.Name, &group.Description, &group.CreatedBy, &group.CreatedAt, &group.InviteCode)
 	if err != nil {
-		return uuid.UUID{}, err
+		return nil, err
 	}
 
-	err = s.assignGroupToUser(ctx, userId, groupId, Owner)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return groupId, nil
-}
-
-func (s *Store) assignGroupToUser(ctx context.Context, userId uuid.UUID, groupId uuid.UUID, role GroupRole) error {
-
-	_, err := s.pool.Exec(ctx, `
+	_, err = tx.Exec(ctx, `
 			INSERT INTO group_members(group_id, user_id, role)
-			VALUES ($1,$2,$3)
-		`, groupId, userId, role)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inviteCode string) error {
-	groupId, err := s.getGroupIdByInviteCode(ctx, inviteCode)
-	if err != nil {
-		return err
-	}
-
-	err = s.assignGroupToUser(ctx, userId, groupId, Member)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Store) getGroupIdByInviteCode(ctx context.Context, inviteCode string) (uuid.UUID, error) {
-	var groupId uuid.UUID
-	row := s.pool.QueryRow(ctx, `
-			SELECT id FROM groups
-			WHERE invite_code = $1
-		`, inviteCode)
-
-	err := row.Scan(&groupId)
-	if err != nil {
-		return uuid.UUID{}, err
-	}
-
-	return groupId, nil
-}
-
-func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*[]GroupRow, error) {
-	var groupIds []uuid.UUID
-	rows, err := s.pool.Query(ctx, `
-			SELECT group_id FROM group_members
-			WHERE user_id = $1
-		`, userId)
-	defer rows.Close()
+			VALUES ($1, $2, $3)
+		`, group.Id, userId, models.Owner)
 
 	if err != nil {
 		return nil, err
 	}
-	for rows.Next() {
-		var id uuid.UUID
 
-		err := rows.Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-
-		groupIds = append(groupIds, id)
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	rows2, err := s.pool.Query(ctx, `
-		SELECT *
+	return &group, nil
+}
+
+func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inviteCode string) error {
+	tag, err := s.pool.Exec(ctx, `
+		INSERT INTO group_members (group_id, user_id, role)
+		SELECT id, $1, $2
 		FROM groups
-		WHERE id = ANY($1)
-	`, groupIds)
-	defer rows2.Close()
+		WHERE invite_code = $3
+	`, userId, models.Member, inviteCode)
 
-	var groups []GroupRow
+	if err != nil {
+		return err
+	}
 
-	for rows2.Next() {
-		var group GroupRow
+	if tag.RowsAffected() == 0 {
+		return helpers.ErrInvalidInviteCode
+	}
 
-		err := rows2.Scan(
+	return nil
+}
+
+func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*[]models.GroupsRow, error) {
+	rows, err := s.pool.Query(ctx, `
+			SELECT g.id, g.name, g.description, g.created_by, g.created_at, g.invite_code
+			FROM groups g
+			JOIN group_members gm
+				ON gm.group_id = g.id
+			WHERE gm.user_id = $1
+		`, userId)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []models.GroupsRow
+
+	for rows.Next() {
+		var group models.GroupsRow
+
+		err := rows.Scan(
 			&group.Id,
 			&group.Name,
 			&group.Description,
@@ -152,8 +104,8 @@ func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*
 	return &groups, nil
 }
 
-func (s *Store) GetGroupById(ctx context.Context, groupId uuid.UUID) (*GroupRow, error) {
-	var group GroupRow
+func (s *Store) GetGroupById(ctx context.Context, groupId uuid.UUID) (*models.GroupsRow, error) {
+	var group models.GroupsRow
 
 	row := s.pool.QueryRow(ctx, `
 			SELECT * FROM groups
@@ -202,49 +154,31 @@ func (s *Store) DoesUserExist(ctx context.Context, userId uuid.UUID) (bool, erro
 	return exists, nil
 }
 
-func (s *Store) GetGroupMembers(ctx context.Context, groupId uuid.UUID) (*[]UserRow, error) {
-
+func (s *Store) GetGroupMembers(ctx context.Context, groupId uuid.UUID) (*[]models.UsersRow, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT user_id FROM group_members
-		WHERE group_id = $1
+		SELECT u.id, u.username, u.email, u.password_hash, u.created_at
+		FROM users u
+		JOIN group_members gm
+			ON gm.user_id = u.id
+		WHERE gm.group_id = $1
 	`, groupId)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
-	if err != nil {
-		return nil, err
-	}
-
-	var userIds []uuid.UUID
+	users := make([]models.UsersRow, 0)
 
 	for rows.Next() {
-		var id uuid.UUID
+		var user models.UsersRow
 
 		err := rows.Scan(
-			&id,
+			&user.Id,
+			&user.Username,
+			&user.Email,
+			&user.PasswordHash,
+			&user.CreatedAt,
 		)
-		if err != nil {
-			return nil, err
-		}
-
-		userIds = append(userIds, id)
-	}
-
-	var users []UserRow
-
-	rows2, err := s.pool.Query(ctx, `
-		SELECT * FROM users
-		WHERE id = ANY($1)
-	`, userIds)
-	defer rows2.Close()
-
-	if err != nil {
-		return nil, err
-	}
-
-	for rows2.Next() {
-		var user UserRow
-
-		err := rows2.Scan(&user.Id, &user.Username, &user.Email, &user.PasswordHash, &user.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -252,11 +186,15 @@ func (s *Store) GetGroupMembers(ctx context.Context, groupId uuid.UUID) (*[]User
 		users = append(users, user)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &users, nil
 }
 
-func (s *Store) GetUserRoleInGroup(ctx context.Context, userId uuid.UUID, groupId uuid.UUID) (GroupRole, error) {
-	var role GroupRole
+func (s *Store) GetUserRoleInGroup(ctx context.Context, userId uuid.UUID, groupId uuid.UUID) (models.GroupRole, error) {
+	var role models.GroupRole
 
 	row := s.pool.QueryRow(ctx, `
 		SELECT role FROM group_members
@@ -295,13 +233,13 @@ func (s *Store) UpdateGroupInfo(ctx context.Context, groupId uuid.UUID, name, de
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() < 1 {
+	if tag.RowsAffected() == 0 {
 		return helpers.ErrNoGroupUpdated
 	}
 	return nil
 }
 
-func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role GroupRole) error {
+func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role models.GroupRole) error {
 	tag, err := s.pool.Exec(ctx, `
 		UPDATE group_members
 		SET role = $1
@@ -310,7 +248,7 @@ func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberI
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() < 1 {
+	if tag.RowsAffected() == 0 {
 		return helpers.ErrNoGroupUpdated
 	}
 	return nil
@@ -324,7 +262,7 @@ func (s *Store) RemoveMemberFromGroup(ctx context.Context, groupId uuid.UUID, me
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() != 1 {
+	if tag.RowsAffected() == 0 {
 		return helpers.ErrGroupMemberNotRemoved
 	}
 	return nil

@@ -4,47 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/helpers"
-	"github.com/holypeachy/EventsAppBackend/store"
+	"github.com/holypeachy/EventsAppBackend/models"
 )
-
-type CreateGroupModel struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type GroupResponse struct {
-	Id          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedBy   uuid.UUID `json:"createdBy"`
-	CreatedAt   time.Time `json:"createdAt"`
-	InviteCode  string    `json:"inviteCode"`
-}
-
-type JoinGroupModel struct {
-	InviteCode string `json:"inviteCode"`
-}
-
-type UserResponse struct {
-	Id        uuid.UUID `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
-type PatchGroupModel struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type UpdateMemberRoleModel struct {
-	Role string `json:"role"`
-}
 
 func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
@@ -54,7 +19,7 @@ func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var model CreateGroupModel
+	var model models.CreateGroupModel
 
 	err = json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
@@ -70,15 +35,14 @@ func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupId, err := h.store.CreateGroup(r.Context(), userId, model.Name, model.Description)
+	group, err := h.store.CreateGroup(r.Context(), userId, model.Name, model.Description)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
-	log.Println("log: group created, ", groupId)
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"groupId": groupId.String()})
+	helpers.WriteJson(w, http.StatusCreated, group)
 }
 
 func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,9 +60,9 @@ func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var groupsResp []GroupResponse
+	var groupsResp []models.GroupResponse
 	for _, v := range *groups {
-		group := GroupResponse{
+		group := models.GroupResponse{
 			Id:          v.Id,
 			Name:        v.Name,
 			Description: v.Description,
@@ -130,7 +94,7 @@ func (h *Handler) GetGroupByIdHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupResp := GroupResponse{
+	groupResp := models.GroupResponse{
 		Id:          groupRow.Id,
 		Name:        groupRow.Name,
 		Description: groupRow.Description,
@@ -151,7 +115,7 @@ func (h *Handler) JoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var model JoinGroupModel
+	var model models.JoinGroupModel
 	err = json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
 		log.Println("error:", err)
@@ -193,9 +157,9 @@ func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var users []UserResponse
+	var users []models.UserResponse
 	for _, v := range *userRows {
-		users = append(users, UserResponse{
+		users = append(users, models.UserResponse{
 			Id:        v.Id,
 			Username:  v.Username,
 			Email:     v.Email,
@@ -245,7 +209,7 @@ func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var model PatchGroupModel
+	var model models.PatchGroupModel
 	err = json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
 		log.Println("error:", err)
@@ -287,7 +251,7 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var model UpdateMemberRoleModel
+	var model models.UpdateMemberRoleModel
 	err = json.NewDecoder(r.Body).Decode(&model)
 	if err != nil {
 		log.Println("error:", err)
@@ -301,7 +265,7 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = h.store.UpdateMemberRole(r.Context(), groupId, memberId, store.GroupRole(model.Role))
+	err = h.store.UpdateMemberRole(r.Context(), groupId, memberId, models.GroupRole(model.Role))
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)

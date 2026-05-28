@@ -19,7 +19,7 @@ func CreateAccessToken(userId uuid.UUID, jwtSecret string) (string, error) {
 	claims := jwt.RegisteredClaims{
 		Subject:   userId.String(),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Minute)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -12,6 +12,7 @@
   go get github.com/go-chi/httprate
 
 ## To Do:
+- on update and group join store functions, return updated object
 - implement event endpoints
 
 - document API for frontend
@@ -20,6 +21,5 @@
 - write tests?
 
 ## Done:
-- create migration for events (events and event_participants)
-- organized store functions into different files
-- wrote db error translation helper
+- added models package for structs
+- optimized sql queries

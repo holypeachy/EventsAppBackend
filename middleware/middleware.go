@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/holypeachy/EventsAppBackend/auth"
 	"github.com/holypeachy/EventsAppBackend/helpers"
+	"github.com/holypeachy/EventsAppBackend/models"
 	"github.com/holypeachy/EventsAppBackend/store"
 )
 
@@ -101,8 +102,8 @@ func (m *MiddleW) RequireGroupMember(next http.Handler) http.Handler {
 
 		doesBelong, err := m.store.DoesUserBelongToGroup(r.Context(), userId, groupId)
 		if err != nil {
-			log.Println("error: failed to check if user belongs to group")
-			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+			apiErr := helpers.HandlePgxError(err)
+			helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 			return
 		}
 
@@ -135,12 +136,12 @@ func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
 
 		role, err := m.store.GetUserRoleInGroup(r.Context(), userId, groupId)
 		if err != nil {
-			log.Println("error: failed to get user role")
-			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+			apiErr := helpers.HandlePgxError(err)
+			helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 			return
 		}
 
-		if role == store.Admin || role == store.Owner {
+		if role == models.Admin || role == models.Owner {
 			next.ServeHTTP(w, r)
 			log.Println("log: middleware, user is admin of group")
 		} else {
@@ -169,12 +170,12 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 
 		role, err := m.store.GetUserRoleInGroup(r.Context(), userId, groupId)
 		if err != nil {
-			log.Println("error: failed to get user role")
-			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+			apiErr := helpers.HandlePgxError(err)
+			helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 			return
 		}
 
-		if role != store.Owner {
+		if role != models.Owner {
 			helpers.WriteErr(w, http.StatusUnauthorized, "user is not group owner")
 		} else {
 			next.ServeHTTP(w, r)
