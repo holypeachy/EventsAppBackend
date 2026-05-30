@@ -62,20 +62,20 @@ func main() {
 			r.Get("/groups", handler.GetGroupsHandler)
 
 			r.Post("/groups/join", handler.JoinGroup)
-			r.Get("/events", nil)
+			r.Get("/events", handler.GetEventsHandler)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireEventParticipant)
 
-				r.Get("/events/{eventId}", nil)
-				r.Get("/events/{eventId}/participants", nil)
-				r.Patch("/events/{eventId}/participants/{userId}/rsvp", nil) // make sure auth userId = userId
+				r.Get("/events/{eventId}", handler.GetEventByIdHandler)
+				r.Get("/events/{eventId}/participants", handler.GetEventParticipantsHandler)
+				r.Patch("/events/{eventId}/participants/{userId}/rsvp", handler.RsvpHandler)
 			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireEventAdmin)
 
-				r.Patch("/events/{eventId}", nil)
+				r.Patch("/events/{eventId}", handler.PatchEventHandler)
 				r.Delete("/events/{eventId}", nil)
 				r.Delete("/events/{eventId}/participants/{userId}", nil)
 

@@ -49,23 +49,38 @@ func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc st
 	return &group, nil
 }
 
-func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inviteCode string) error {
-	tag, err := s.pool.Exec(ctx, `
+func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inviteCode string) (*models.GroupsRow, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
 		INSERT INTO group_members (group_id, user_id, role)
 		SELECT id, $1, $2
 		FROM groups
 		WHERE invite_code = $3
 	`, userId, models.Member, inviteCode)
-
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if tag.RowsAffected() == 0 {
-		return helpers.ErrInvalidInviteCode
+	var group models.GroupsRow
+	row := tx.QueryRow(ctx, `
+		SELECT * FROM groups
+		WHERE invite_code = $1
+		`, inviteCode)
+	err = row.Scan(&group.Id, &group.Name, &group.Description, &group.CreatedBy, &group.CreatedAt, &group.InviteCode)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &group, nil
 }
 
 func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*[]models.GroupsRow, error) {
@@ -138,6 +153,7 @@ func (s *Store) DoesUserBelongToGroup(ctx context.Context, userId uuid.UUID, gro
 }
 
 func (s *Store) DoesUserExist(ctx context.Context, userId uuid.UUID) (bool, error) {
+	// return user?
 	var exists bool
 
 	err := s.pool.QueryRow(ctx, `
@@ -209,49 +225,53 @@ func (s *Store) GetUserRoleInGroup(ctx context.Context, userId uuid.UUID, groupI
 	return role, nil
 }
 
-func (s *Store) UpdateGroupInviteCode(ctx context.Context, groupId uuid.UUID, code string) error {
-	tag, err := s.pool.Exec(ctx, `
+func (s *Store) UpdateGroupInviteCode(ctx context.Context, groupId uuid.UUID, code string) (*models.GroupsRow, error) {
+	row := s.pool.QueryRow(ctx, `
 		UPDATE groups
 		SET invite_code = $1
 		WHERE id = $2
+		RETURNING *
 		`, code, groupId)
+
+	var group models.GroupsRow
+	err := row.Scan(&group.Id, &group.Name, &group.Description, &group.CreatedBy, &group.CreatedAt, &group.InviteCode)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
-		return helpers.ErrNoGroupUpdated
-	}
-	return nil
+
+	return &group, nil
 }
 
-func (s *Store) UpdateGroupInfo(ctx context.Context, groupId uuid.UUID, name, desc string) error {
-	tag, err := s.pool.Exec(ctx, `
+func (s *Store) UpdateGroupInfo(ctx context.Context, groupId uuid.UUID, name, desc string) (*models.GroupsRow, error) {
+	row := s.pool.QueryRow(ctx, `
 		UPDATE groups
 		SET name = $1, description = $2
 		WHERE id = $3
+		RETURNING *
 		`, name, desc, groupId)
+
+	var group models.GroupsRow
+	err := row.Scan(&group.Id, &group.Name, &group.Description, &group.CreatedBy, &group.CreatedAt, &group.InviteCode)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
-		return helpers.ErrNoGroupUpdated
-	}
-	return nil
+
+	return &group, nil
 }
 
-func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role models.GroupRole) error {
-	tag, err := s.pool.Exec(ctx, `
+func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role models.GroupRole) (*models.GroupMemberRow, error) {
+	row := s.pool.QueryRow(ctx, `
 		UPDATE group_members
 		SET role = $1
 		WHERE group_id = $2 AND user_id = $3
+		RETURNING *
 		`, role, groupId, memberId)
+	var member models.GroupMemberRow
+	err := row.Scan(&member.GroupId, &member.UserId, &member.Role, &member.JoinedAt)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
-		return helpers.ErrNoGroupUpdated
-	}
-	return nil
+	return &member, nil
 }
 
 func (s *Store) RemoveMemberFromGroup(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID) error {

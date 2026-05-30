@@ -35,10 +35,10 @@ type GroupsRow struct {
 }
 
 type GroupMemberRow struct {
-	GroupId  uuid.UUID
-	UserId   uuid.UUID
-	Role     GroupRole
-	JoinedAt time.Time
+	GroupId  uuid.UUID `json:"groupId"`
+	UserId   uuid.UUID `json:"userId"`
+	Role     GroupRole `json:"role"`
+	JoinedAt time.Time `json:"joinedAt"`
 }
 
 type GroupRole string
@@ -90,27 +90,26 @@ type EventsRow struct {
 }
 
 type EventParticipantsRow struct {
-	EventId     uuid.UUID
-	UserId      uuid.UUID
-	Status      ParticipantStatus
-	Role        ParticipantRole
-	CreatedAt   time.Time
-	RespondedAt time.Time
+	EventId     uuid.UUID         `json:"eventId"`
+	UserId      uuid.UUID         `json:"userId"`
+	Status      ParticipantStatus `json:"status"`
+	Role        ParticipantRole   `json:"role"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	RespondedAt time.Time         `json:"respondedAt"`
 }
 
-type EventDto struct {
-	GroupId      uuid.UUID
-	CreatedBy    uuid.UUID
-	Name         string
-	Description  string
-	Location     string
-	Status       EventStatus
-	RsvpDeadline time.Time
-	StartsAt     time.Time
-	EndsAt       time.Time
+type ParticipantUserInfoRow struct {
+	EventId     uuid.UUID         `json:"eventId"`
+	UserId      uuid.UUID         `json:"userId"`
+	Status      ParticipantStatus `json:"status"`
+	Role        ParticipantRole   `json:"role"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	RespondedAt time.Time         `json:"respondedAt"`
+
+	Username string `json:"username"`
 }
 
-type EventModel struct {
+type EventModelDto struct {
 	Name         string      `json:"name"`
 	Description  string      `json:"description"`
 	Location     string      `json:"location"`
@@ -118,4 +117,8 @@ type EventModel struct {
 	RsvpDeadline time.Time   `json:"rsvpDeadline"`
 	StartsAt     time.Time   `json:"startsAt"`
 	EndsAt       time.Time   `json:"endsAt"`
+}
+
+type RsvpModel struct {
+	Status string `json:"status"`
 }

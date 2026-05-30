@@ -72,3 +72,15 @@ type PatchGroupModel struct {
 type UpdateMemberRoleModel struct {
 	Role string `json:"role"`
 }
+
+// Events
+
+type UpdateEventModel struct {
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	Status       string    `json:"status"`
+	RsvpDeadline time.Time `json:"rsvpDeadline"`
+	StartsAt     time.Time `json:"startsAt"`
+	EndsAt       time.Time `json:"endsAt"`
+}

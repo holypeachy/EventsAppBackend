@@ -23,6 +23,7 @@ var ErrNoGroupUpdated = errors.New("no group updated")
 var ErrGroupNotDeleted = errors.New("no group deleted")
 var ErrGroupMemberNotRemoved = errors.New("no group member removed")
 var ErrInvalidInviteCode = errors.New("invalid invite code")
+var ErrRsvpFailed = errors.New("rsvp failed, could not find user or event")
 
 type APIError struct {
 	Status  int

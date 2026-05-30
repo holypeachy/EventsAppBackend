@@ -79,7 +79,7 @@ func (model *UpdateMemberRoleModel) Validate() error {
 	return errors.New("updated role must be admin or member")
 }
 
-func (model *EventModel) Validate() error {
+func (model *EventModelDto) Validate() error {
 	if strings.TrimSpace(model.Name) == "" {
 		return errors.New("event name cannot be empty")
 	}
@@ -93,4 +93,34 @@ func (model *EventModel) Validate() error {
 		return errors.New("endsAt is required")
 	}
 	return nil
+}
+
+func (model *RsvpModel) Validate() error {
+	role := ParticipantStatus(strings.TrimSpace(model.Status))
+	if role == EventGoing || role == EventMaybe || role == EventDeclined {
+		return nil
+	}
+
+	return errors.New("status must be going, maybe, or declined")
+}
+
+func (model *UpdateEventModel) Validate() error {
+	if strings.TrimSpace(model.Name) == "" {
+		return errors.New("event name cannot be empty")
+	}
+	if model.RsvpDeadline.IsZero() {
+		return errors.New("event rsvpDeadline cannot be empty")
+	}
+	if model.StartsAt.IsZero() {
+		return errors.New("event startsAt cannot be empty")
+	}
+	if model.EndsAt.IsZero() {
+		return errors.New("event endsAt cannot be empty")
+	}
+	status := EventStatus(strings.TrimSpace(model.Status))
+	if status == EventRsvpOpen || status == EventRsvpClosed || status == EventCancelled {
+		return nil
+	}
+
+	return errors.New("event status must be rsvp_open, rsvp_closed, or cancelled")
 }

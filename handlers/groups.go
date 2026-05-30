@@ -130,14 +130,14 @@ func (h *Handler) JoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.JoinGroupByInviteCode(r.Context(), userId, model.InviteCode)
+	group, err := h.store.JoinGroupByInviteCode(r.Context(), userId, model.InviteCode)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user joined group"})
+	helpers.WriteJson(w, http.StatusOK, group)
 }
 
 func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +188,7 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err = h.store.UpdateGroupInviteCode(r.Context(), groupId, code)
+	group, err := h.store.UpdateGroupInviteCode(r.Context(), groupId, code)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
@@ -196,7 +196,7 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Println("log: code regenerated succesfully")
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"inviteCode": code})
+	helpers.WriteJson(w, http.StatusOK, group)
 }
 
 func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,13 +223,13 @@ func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.store.UpdateGroupInfo(r.Context(), groupId, model.Name, model.Description)
+	group, err := h.store.UpdateGroupInfo(r.Context(), groupId, model.Name, model.Description)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group info updated"})
+	helpers.WriteJson(w, http.StatusOK, group)
 }
 
 func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request) {
@@ -265,13 +265,13 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = h.store.UpdateMemberRole(r.Context(), groupId, memberId, models.GroupRole(model.Role))
+	groupMember, err := h.store.UpdateMemberRole(r.Context(), groupId, memberId, models.GroupRole(model.Role))
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 	}
 
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member role updated"})
+	helpers.WriteJson(w, http.StatusOK, groupMember)
 }
 
 func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Request) {
