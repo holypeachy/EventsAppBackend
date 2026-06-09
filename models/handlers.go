@@ -84,3 +84,7 @@ type UpdateEventModel struct {
 	StartsAt     time.Time `json:"startsAt"`
 	EndsAt       time.Time `json:"endsAt"`
 }
+
+type AddParticipantsModel struct {
+	ParticipantIds []uuid.UUID `json:"participantIds"`
+}

@@ -33,7 +33,7 @@ Text identity citext for users.username and users.email
 group_member_role   member | admin | owner
 event_status        scheduled | cancelled | completed
 participant_status  invited | going | maybe | declined
-participant_role    participant | admin
+participant_role    owner | manager | participant
 contribution_type   money | food | item | other
 contribution_status open | claimed | fulfilled | cancelled
 notification_type   group_added | event_invited | event_updated
@@ -183,7 +183,8 @@ user_id  → users.id    ON DELETE CASCADE
 Notes:
 
 - This single table is the **invite list**, the **visibility list**, the
-  **RSVP store**, and the **per-event manager list** (`role = 'admin'`).
+  **RSVP store**, and the **per-event role list** (`role = 'owner'`,
+  `'manager'`, or `'participant'`).
 - Rows exist only for invited users.
 - `responded_at` is set when the user changes `status` away from `invited`.
 
@@ -222,7 +223,7 @@ Notes:
 - `claimed_by` and `quantity_claimed` were **removed**. Progress is derived
   by summing `contribution_claims` (see below): `SUM(amount_cents)` for money,
   `SUM(quantity)` for food/item/other.
-- Only event managers (event creator or a participant with `role = 'admin'`)
+- Only event managers (event owner or a participant with `role = 'manager'`)
   may create/edit/cancel contributions (application-enforced).
 
 Examples:
@@ -407,14 +408,14 @@ CASCADE   all membership / participation / child rows
   added at creation.
 
 - **Create event.** Insert the event → insert an `event_participants` row for
-  the creator with `role = 'admin'` → insert `event_participants` rows
+  the creator with `role = 'owner'` → insert `event_participants` rows
   (`status = 'invited'`, `role = 'participant'`) for each other selected user
   → enqueue `event_invited` notifications for the invited users.
 
-- **Event managers.** The event creator is a manager. A manager may promote
+- **Event managers.** The event owner is a manager. A manager may promote
   any participant of that event to manager by setting
-  `event_participants.role = 'admin'` (and demote back to `'participant'`).
-  Managers (creator + any `role = 'admin'` participant) have equal powers:
+  `event_participants.role = 'manager'` (and demote back to `'participant'`).
+  Managers (`role = 'owner'` or `role = 'manager'`) have equal powers:
   edit/cancel the event, manage the invite list (add/remove participants),
   and create/edit/cancel contributions. All application-enforced.
 

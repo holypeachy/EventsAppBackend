@@ -46,10 +46,8 @@ VALUES (
 );
 
 -- +goose Down
-DROP DATABASE events_app
-
-DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS users;
 
 DROP EXTENSION IF EXISTS citext;
 DROP EXTENSION IF EXISTS pgcrypto;

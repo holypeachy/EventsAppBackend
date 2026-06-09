@@ -21,16 +21,17 @@ Auth scheme: **JWT bearer access token + rotating refresh token**
 | **Group admin** | `group_members.role='admin'`. |
 | **Group owner** | `group_members.role='owner'` (the creator; one per group). |
 | **Event participant** | Any `event_participants` row for the event (any `role`/`status`). |
-| **Event manager** | Event `created_by` **OR** `event_participants.role='admin'` for that event. |
+| **Event owner** | `event_participants.role='owner'` for that event. |
+| **Event manager** | `event_participants.role='owner'` or `event_participants.role='manager'` for that event. |
 | **Claim owner** | `contribution_claims.user_id` = the requester. |
 | **Self** | The authenticated user acting on their own user / notifications / device-tokens. |
 
 Notes:
 
 - Group roles escalate: `owner` ⊇ `admin` ⊇ `member`.
-- "Event manager" is independent of group role. The event creator is always a
+- "Event manager" is independent of group role. The event owner is always a
   manager; a manager may promote any participant to manager
-  (`event_participants.role='admin'`) and demote back.
+  (`event_participants.role='manager'`) and demote back.
 - A user must be a member of a group to be invited to that group's events.
 
 ---

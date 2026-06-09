@@ -159,15 +159,98 @@ func (h *Handler) PatchEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, "eventId")
 
+	eventId, err := uuid.Parse(eventIdString)
+	if err != nil {
+		log.Println("error: invalid event id", eventId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	err = h.store.DeleteEvent(r.Context(), eventId)
+	if err != nil {
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "event deleted"})
 }
 
 func (h *Handler) RemoveParticipantHandler(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, "eventId")
 
+	eventId, err := uuid.Parse(eventIdString)
+	if err != nil {
+		log.Println("error: invalid event id", eventId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	userIdString := chi.URLParam(r, "userId")
+
+	userId, err := uuid.Parse(userIdString)
+	if err != nil {
+		log.Println("error: invalid user id", eventId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	role, err := h.store.GetEventUserRole(r.Context(), userId, eventId)
+	if err != nil {
+		_ = helpers.HandlePgxError(err)
+		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if role == models.EventManager || role == models.EventOwner {
+		helpers.WriteErr(w, http.StatusUnauthorized, "cannot remove event manager")
+		return
+	}
+
+	err = h.store.RemoveParticipant(r.Context(), eventId, userId)
+	if err != nil {
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user removed from event"})
 }
 
 func (h *Handler) AddParticipantHandler(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, "eventId")
 
+	eventId, err := uuid.Parse(eventIdString)
+	if err != nil {
+		log.Println("error: invalid event id", eventId)
+		helpers.WriteErr(w, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	var model models.AddParticipantsModel
+
+	err = json.NewDecoder(r.Body).Decode(&model)
+	if err != nil {
+		log.Println("error:", err)
+		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
+		return
+	}
+
+	err = model.Validate()
+	if err != nil {
+		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.store.AddParticipants(r.Context(), eventId, model.ParticipantIds)
+	if err != nil {
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
+	}
+
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "event participants added"})
 }
 
 func (h *Handler) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
@@ -217,14 +300,12 @@ func (h *Handler) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetGroupEventsHandler(w http.ResponseWriter, r *http.Request) {
-	// only if user is in event
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	log.Println(userId)
 
 	groupIdString := chi.URLParam(r, "groupId")
 
@@ -235,7 +316,7 @@ func (h *Handler) GetGroupEventsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	events, err := h.store.GetGroupEvents(r.Context(), groupId)
+	events, err := h.store.GetGroupEvents(r.Context(), userId, groupId)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)

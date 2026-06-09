@@ -60,7 +60,7 @@ func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var groupsResp []models.GroupResponse
+	groupsResp := make([]models.GroupResponse, 0)
 	for _, v := range *groups {
 		group := models.GroupResponse{
 			Id:          v.Id,
@@ -157,7 +157,7 @@ func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var users []models.UserResponse
+	users := make([]models.UserResponse, 0)
 	for _, v := range *userRows {
 		users = append(users, models.UserResponse{
 			Id:        v.Id,

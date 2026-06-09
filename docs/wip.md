@@ -12,12 +12,13 @@
   go get github.com/go-chi/httprate
 
 ## To Do:
-- implement event endpoints
-
-- document API for frontend
+- review codebase
 - organize codebase (models, errors, constants)
+- document API for frontend
 - improve logging
 - write tests?
 
 ## Done:
-- on update and group join store functions, return updated object
+- added RequireEventOwner middleware
+- finish implementing event endpoints
+- changed event admin to event manager, and added event owner

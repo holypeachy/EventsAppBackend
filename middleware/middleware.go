@@ -29,7 +29,6 @@ func NewMiddleware(store *store.Store, jwtSecret string) *MiddleW {
 }
 
 func (m *MiddleW) RequireAuth(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		authHeader := r.Header.Get("Authorization")
@@ -55,8 +54,7 @@ func (m *MiddleW) RequireAuth(next http.Handler) http.Handler {
 			}
 
 			return []byte(m.jwtSecret), nil
-		},
-		)
+		})
 
 		if err != nil || !token.Valid {
 			helpers.WriteErr(w, http.StatusUnauthorized, "invalid token")
@@ -218,7 +216,7 @@ func (m *MiddleW) RequireEventParticipant(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireEventAdmin(next http.Handler) http.Handler {
+func (m *MiddleW) RequireEventManager(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -243,11 +241,45 @@ func (m *MiddleW) RequireEventAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		if role != models.EventAdmin {
-			helpers.WriteErr(w, http.StatusUnauthorized, "user is not event admin")
+		if role != models.EventManager && role != models.EventOwner {
+			helpers.WriteErr(w, http.StatusUnauthorized, "user is not event manager")
 			return
 		}
 		next.ServeHTTP(w, r)
-		log.Println("log: middleware, user is event admin")
+		log.Println("log: middleware, user is event manager")
+	})
+}
+
+func (m *MiddleW) RequireEventOwner(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userId, err := helpers.ExtractUserId(r.Context())
+		if err != nil {
+			log.Println("error: failed to extract user Id from ctx")
+			helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+
+		eventIdString := chi.URLParam(r, "eventId")
+
+		eventId, err := uuid.Parse(eventIdString)
+		if err != nil {
+			log.Println("error: invalid event id", eventId)
+			helpers.WriteErr(w, http.StatusBadRequest, "invalid event id")
+			return
+		}
+
+		role, err := m.store.GetEventUserRole(r.Context(), userId, eventId)
+		if err != nil {
+			apiErr := helpers.HandlePgxError(err)
+			helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+			return
+		}
+
+		if role != models.EventOwner {
+			helpers.WriteErr(w, http.StatusUnauthorized, "user is not event owner")
+			return
+		}
+		next.ServeHTTP(w, r)
+		log.Println("log: middleware, user is event owner")
 	})
 }

@@ -129,9 +129,9 @@ DELETE /api/v1/groups/{groupId}/members/{userId}
 ```txt
 POST /api/v1/groups/{groupId}/events
   Body: { name, description?, location?, startsAt, endsAt?,
-          inviteeUserIds[] }
+          participantIds[] }
   Creates an event. The creator gets an event_participants row with
-  role='admin'; each invitee gets a row (status='invited',
+  role='owner'; each invitee gets a row (status='invited',
   role='participant') and an event_invited notification. Excluded
   members get no row (no exclusions table).
   Auth: Group member
@@ -170,7 +170,7 @@ GET /api/v1/events/{eventId}/participants
   Auth: Event participant
 
 POST /api/v1/events/{eventId}/participants
-  Body: { userIds[] }
+  Body: { participantIds[] }
   Invites more group members; creates event_participants rows
   (status='invited') and event_invited notifications.
   Auth: Event manager
@@ -187,8 +187,8 @@ PATCH /api/v1/events/{eventId}/participants/{userId}/rsvp
   Auth: Self only (that participant)
 
 PATCH /api/v1/events/{eventId}/participants/{userId}/role
-  Body: { role }            participant | admin
-  Promotes a participant to event manager (admin) or demotes back.
+  Body: { role }            participant | manager
+  Promotes a participant to event manager or demotes back.
   Auth: Event manager
 ```
 

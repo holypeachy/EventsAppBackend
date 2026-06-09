@@ -97,7 +97,7 @@ func (s *Store) GetGroupsUserBelongsTo(ctx context.Context, userId uuid.UUID) (*
 	}
 	defer rows.Close()
 
-	var groups []models.GroupsRow
+	groups := make([]models.GroupsRow, 0)
 
 	for rows.Next() {
 		var group models.GroupsRow

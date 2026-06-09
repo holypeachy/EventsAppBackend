@@ -65,30 +65,12 @@ func main() {
 			r.Get("/events", handler.GetEventsHandler)
 
 			r.Group(func(r chi.Router) {
-				r.Use(middle.RequireEventParticipant)
-
-				r.Get("/events/{eventId}", handler.GetEventByIdHandler)
-				r.Get("/events/{eventId}/participants", handler.GetEventParticipantsHandler)
-				r.Patch("/events/{eventId}/participants/{userId}/rsvp", handler.RsvpHandler)
-			})
-
-			r.Group(func(r chi.Router) {
-				r.Use(middle.RequireEventAdmin)
-
-				r.Patch("/events/{eventId}", handler.PatchEventHandler)
-				r.Delete("/events/{eventId}", nil)
-				r.Delete("/events/{eventId}/participants/{userId}", nil)
-
-				r.Post("/events/{eventId}/participants", nil)
-			})
-
-			r.Group(func(r chi.Router) {
 				r.Use(middle.RequireGroupMember)
 
 				r.Get("/groups/{groupId}", handler.GetGroupByIdHandler)
 				r.Get("/groups/{groupId}/members", handler.GetGroupMembersHandler)
-				r.Post("/groups/{groupId}/events", handler.CreateEventHandler)   // TODO
-				r.Get("/groups/{groupId}/events", handler.GetGroupEventsHandler) // TODO
+				r.Post("/groups/{groupId}/events", handler.CreateEventHandler)
+				r.Get("/groups/{groupId}/events", handler.GetGroupEventsHandler)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -104,6 +86,29 @@ func main() {
 				r.Use(middle.RequireGroupOwner)
 
 				r.Delete("/groups/{groupId}", handler.DeleteGroupHandler)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middle.RequireEventParticipant)
+
+				r.Get("/events/{eventId}", handler.GetEventByIdHandler)
+				r.Get("/events/{eventId}/participants", handler.GetEventParticipantsHandler)
+				r.Patch("/events/{eventId}/participants/{userId}/rsvp", handler.RsvpHandler)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middle.RequireEventManager)
+
+				r.Patch("/events/{eventId}", handler.PatchEventHandler)
+				r.Delete("/events/{eventId}", handler.DeleteEventHandler)
+				r.Delete("/events/{eventId}/participants/{userId}", handler.RemoveParticipantHandler)
+
+				r.Post("/events/{eventId}/participants", handler.AddParticipantHandler)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middle.RequireEventOwner)
+
 			})
 		})
 

@@ -12,8 +12,9 @@ CREATE TYPE participant_status AS ENUM (
     'declined'
 );
 CREATE TYPE participant_role AS ENUM (
-    'participant',
-    'admin'
+    'owner',
+    'manager',
+    'participant'
 );
 
 CREATE TABLE events(

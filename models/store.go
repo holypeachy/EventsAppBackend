@@ -71,8 +71,9 @@ const (
 type ParticipantRole string
 
 const (
+	EventOwner       ParticipantRole = "owner"
+	EventManager     ParticipantRole = "manager"
 	EventParticipant ParticipantRole = "participant"
-	EventAdmin       ParticipantRole = "admin"
 )
 
 type EventsRow struct {
@@ -110,13 +111,14 @@ type ParticipantUserInfoRow struct {
 }
 
 type EventModelDto struct {
-	Name         string      `json:"name"`
-	Description  string      `json:"description"`
-	Location     string      `json:"location"`
-	Status       EventStatus `json:"status"`
-	RsvpDeadline time.Time   `json:"rsvpDeadline"`
-	StartsAt     time.Time   `json:"startsAt"`
-	EndsAt       time.Time   `json:"endsAt"`
+	Name           string      `json:"name"`
+	Description    string      `json:"description"`
+	Location       string      `json:"location"`
+	Status         EventStatus `json:"status"`
+	RsvpDeadline   time.Time   `json:"rsvpDeadline"`
+	StartsAt       time.Time   `json:"startsAt"`
+	EndsAt         time.Time   `json:"endsAt"`
+	ParticipantIds []uuid.UUID `json:"participantIds"`
 }
 
 type RsvpModel struct {

@@ -124,3 +124,11 @@ func (model *UpdateEventModel) Validate() error {
 
 	return errors.New("event status must be rsvp_open, rsvp_closed, or cancelled")
 }
+
+func (model *AddParticipantsModel) Validate() error {
+	if len(model.ParticipantIds) == 0 {
+		return errors.New("must provide at least 1 participant to add")
+	}
+
+	return nil
+}
