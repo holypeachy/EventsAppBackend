@@ -35,7 +35,7 @@ func (s *Store) CreateGroup(ctx context.Context, userId uuid.UUID, name, desc st
 	_, err = tx.Exec(ctx, `
 			INSERT INTO group_members(group_id, user_id, role)
 			VALUES ($1, $2, $3)
-		`, group.Id, userId, models.Owner)
+		`, group.Id, userId, models.GroupOwner)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func (s *Store) JoinGroupByInviteCode(ctx context.Context, userId uuid.UUID, inv
 		SELECT id, $1, $2
 		FROM groups
 		WHERE invite_code = $3
-	`, userId, models.Member, inviteCode)
+	`, userId, models.GroupMember, inviteCode)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +152,7 @@ func (s *Store) DoesUserBelongToGroup(ctx context.Context, userId uuid.UUID, gro
 	return exists, nil
 }
 
+// Unused so far
 func (s *Store) DoesUserExist(ctx context.Context, userId uuid.UUID) (bool, error) {
 	// return user?
 	var exists bool
@@ -259,14 +260,14 @@ func (s *Store) UpdateGroupInfo(ctx context.Context, groupId uuid.UUID, name, de
 	return &group, nil
 }
 
-func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role models.GroupRole) (*models.GroupMemberRow, error) {
+func (s *Store) UpdateMemberRole(ctx context.Context, groupId uuid.UUID, memberId uuid.UUID, role models.GroupRole) (*models.GroupMembersRow, error) {
 	row := s.pool.QueryRow(ctx, `
 		UPDATE group_members
 		SET role = $1
 		WHERE group_id = $2 AND user_id = $3
 		RETURNING *
 		`, role, groupId, memberId)
-	var member models.GroupMemberRow
+	var member models.GroupMembersRow
 	err := row.Scan(&member.GroupId, &member.UserId, &member.Role, &member.JoinedAt)
 	if err != nil {
 		return nil, err

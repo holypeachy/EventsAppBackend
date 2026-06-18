@@ -1,76 +1,30 @@
 package helpers
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
-	"github.com/google/uuid"
-	"github.com/holypeachy/EventsAppBackend/auth"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
-
-const InviteCodeLength int = 8
-
-const inviteCharset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
-var ErrTokenNotFound = errors.New("token not found")
-var ErrNoGroupUpdated = errors.New("group update failed")
-var ErrGroupNotDeleted = errors.New("group delete failed")
-var ErrGroupMemberNotRemoved = errors.New("group member removal failed")
-var ErrInvalidInviteCode = errors.New("invalid invite code")
-var ErrRsvpFailed = errors.New("rsvp failed, could not find user or event")
-var ErrEventNotDeleted = errors.New("event delete failed")
-var ErrEventParticipantNotDeleted = errors.New("event participant removal failed")
-var ErrInvalidEventParticipant = errors.New("participant must belong to event group")
 
 type APIError struct {
 	Status  int
 	Message string
 }
 
-func WriteJson(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	json.NewEncoder(w).Encode(data)
-}
-
-func WriteErr(w http.ResponseWriter, status int, msg string) {
-	WriteJson(w, status, map[string]string{"error": msg})
-}
-
-func ExtractUserId(ctx context.Context) (uuid.UUID, error) {
-	value := ctx.Value(auth.UserIdContextKey)
-
-	userId, ok := value.(uuid.UUID)
-	if !ok {
-		return userId, errors.New("could not cast UUID")
-	}
-
-	return userId, nil
-}
-
-func GenerateNewInviteCode(length int) (string, error) {
-	bytes := make([]byte, length)
-
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-
-	result := make([]byte, length)
-
-	for i, b := range bytes {
-		result[i] = inviteCharset[int(b)%len(inviteCharset)]
-	}
-
-	return string(result), nil
-}
+var (
+	ErrTokenNotFound              = errors.New("token not found")
+	ErrNoGroupUpdated             = errors.New("group update failed")
+	ErrGroupNotDeleted            = errors.New("group delete failed")
+	ErrGroupMemberNotRemoved      = errors.New("group member removal failed")
+	ErrInvalidInviteCode          = errors.New("invalid invite code")
+	ErrRsvpFailed                 = errors.New("rsvp failed, could not find user or event")
+	ErrEventNotDeleted            = errors.New("event delete failed")
+	ErrEventParticipantNotDeleted = errors.New("event participant removal failed")
+	ErrInvalidEventParticipant    = errors.New("participant must belong to event group")
+)
 
 func HandlePgxError(err error) APIError {
 	log.Println("error:", err)

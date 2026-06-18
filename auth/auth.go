@@ -9,11 +9,14 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
-type ContextKey string
+type CtxKey string
 
-const UserIdContextKey ContextKey = "userId"
+const UserIdCtxKey CtxKey = "userId"
+
+const BcryptCost int = bcrypt.DefaultCost
 
 func CreateAccessToken(userId uuid.UUID, jwtSecret string) (string, error) {
 	claims := jwt.RegisteredClaims{

@@ -11,7 +11,7 @@ import (
 	"github.com/holypeachy/EventsAppBackend/models"
 )
 
-func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateGroup(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -45,7 +45,7 @@ func (h *Handler) CreateGroupHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusCreated, group)
 }
 
-func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetGroups(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -77,8 +77,8 @@ func (h *Handler) GetGroupsHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, groupsResp)
 }
 
-func (h *Handler) GetGroupByIdHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) GetGroupById(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -103,7 +103,6 @@ func (h *Handler) GetGroupByIdHandler(w http.ResponseWriter, r *http.Request) {
 		InviteCode:  groupRow.InviteCode,
 	}
 
-	log.Println("log: group by id success")
 	helpers.WriteJson(w, http.StatusOK, groupResp)
 }
 
@@ -140,8 +139,8 @@ func (h *Handler) JoinGroup(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, group)
 }
 
-func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -167,12 +166,11 @@ func (h *Handler) GetGroupMembersHandler(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	log.Println("log: group members sent")
 	helpers.WriteJson(w, http.StatusOK, users)
 }
 
-func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) RegenInviteCode(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -181,9 +179,9 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	code, err := helpers.GenerateNewInviteCode(8)
+	code, err := helpers.GenerateNewInviteCode(helpers.InviteCodeLength)
 	if err != nil {
-		log.Println("error: failed to generate code\n", err)
+		log.Println("error: failed to generate code\n\t", err.Error())
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -195,12 +193,11 @@ func (h *Handler) RegenInviteCodeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	log.Println("log: code regenerated succesfully")
 	helpers.WriteJson(w, http.StatusOK, group)
 }
 
-func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) PatchGroup(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -227,13 +224,14 @@ func (h *Handler) PatchGroupHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
 	}
 
 	helpers.WriteJson(w, http.StatusOK, group)
 }
 
-func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -242,7 +240,7 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	memberIdString := chi.URLParam(r, "userId")
+	memberIdString := chi.URLParam(r, helpers.ParamUserId)
 
 	memberId, err := uuid.Parse(memberIdString)
 	if err != nil {
@@ -269,13 +267,14 @@ func (h *Handler) UpdateMemberRoleHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
 	}
 
 	helpers.WriteJson(w, http.StatusOK, groupMember)
 }
 
-func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+func (h *Handler) RemoveGroupMember(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -284,7 +283,7 @@ func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	memberIdString := chi.URLParam(r, "userId")
+	memberIdString := chi.URLParam(r, helpers.ParamUserId)
 
 	memberId, err := uuid.Parse(memberIdString)
 	if err != nil {
@@ -297,12 +296,14 @@ func (h *Handler) RemoveMemberFromGroupHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "member removed from group"})
 }
-func (h *Handler) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
-	groupIdString := chi.URLParam(r, "groupId")
+
+func (h *Handler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -315,6 +316,7 @@ func (h *Handler) DeleteGroupHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
+		return
 	}
 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "group removed"})

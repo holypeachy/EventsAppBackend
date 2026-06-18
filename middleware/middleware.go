@@ -16,19 +16,19 @@ import (
 	"github.com/holypeachy/EventsAppBackend/store"
 )
 
-type MiddleW struct {
+type Middleware struct {
 	store     *store.Store
 	jwtSecret string
 }
 
-func NewMiddleware(store *store.Store, jwtSecret string) *MiddleW {
-	return &MiddleW{
+func NewMiddleware(store *store.Store, jwtSecret string) *Middleware {
+	return &Middleware{
 		store:     store,
 		jwtSecret: jwtSecret,
 	}
 }
 
-func (m *MiddleW) RequireAuth(next http.Handler) http.Handler {
+func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		authHeader := r.Header.Get("Authorization")
@@ -70,7 +70,7 @@ func (m *MiddleW) RequireAuth(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(
 			r.Context(),
-			auth.UserIdContextKey,
+			auth.UserIdCtxKey,
 			userId,
 		)
 
@@ -80,7 +80,7 @@ func (m *MiddleW) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireGroupMember(next http.Handler) http.Handler {
+func (m *Middleware) RequireGroupMember(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -89,7 +89,7 @@ func (m *MiddleW) RequireGroupMember(next http.Handler) http.Handler {
 			return
 		}
 
-		groupIdString := chi.URLParam(r, "groupId")
+		groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 		groupId, err := uuid.Parse(groupIdString)
 		if err != nil {
@@ -114,7 +114,7 @@ func (m *MiddleW) RequireGroupMember(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
+func (m *Middleware) RequireGroupAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -123,7 +123,7 @@ func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		groupIdString := chi.URLParam(r, "groupId")
+		groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 		groupId, err := uuid.Parse(groupIdString)
 		if err != nil {
@@ -139,7 +139,7 @@ func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		if role == models.Admin || role == models.Owner {
+		if role == models.GroupAdmin || role == models.GroupOwner {
 			next.ServeHTTP(w, r)
 			log.Println("log: middleware, user is admin of group")
 		} else {
@@ -148,7 +148,7 @@ func (m *MiddleW) RequireGroupAdmin(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
+func (m *Middleware) RequireGroupOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -157,7 +157,7 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 			return
 		}
 
-		groupIdString := chi.URLParam(r, "groupId")
+		groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 		groupId, err := uuid.Parse(groupIdString)
 		if err != nil {
@@ -173,7 +173,7 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 			return
 		}
 
-		if role != models.Owner {
+		if role != models.GroupOwner {
 			helpers.WriteErr(w, http.StatusUnauthorized, "user is not group owner")
 		} else {
 			next.ServeHTTP(w, r)
@@ -182,7 +182,7 @@ func (m *MiddleW) RequireGroupOwner(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireEventParticipant(next http.Handler) http.Handler {
+func (m *Middleware) RequireEventParticipant(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -191,7 +191,7 @@ func (m *MiddleW) RequireEventParticipant(next http.Handler) http.Handler {
 			return
 		}
 
-		eventIdString := chi.URLParam(r, "eventId")
+		eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 		eventId, err := uuid.Parse(eventIdString)
 		if err != nil {
@@ -216,7 +216,7 @@ func (m *MiddleW) RequireEventParticipant(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireEventManager(next http.Handler) http.Handler {
+func (m *Middleware) RequireEventManager(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -225,7 +225,7 @@ func (m *MiddleW) RequireEventManager(next http.Handler) http.Handler {
 			return
 		}
 
-		eventIdString := chi.URLParam(r, "eventId")
+		eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 		eventId, err := uuid.Parse(eventIdString)
 		if err != nil {
@@ -250,7 +250,7 @@ func (m *MiddleW) RequireEventManager(next http.Handler) http.Handler {
 	})
 }
 
-func (m *MiddleW) RequireEventOwner(next http.Handler) http.Handler {
+func (m *Middleware) RequireEventOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userId, err := helpers.ExtractUserId(r.Context())
 		if err != nil {
@@ -259,7 +259,7 @@ func (m *MiddleW) RequireEventOwner(next http.Handler) http.Handler {
 			return
 		}
 
-		eventIdString := chi.URLParam(r, "eventId")
+		eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 		eventId, err := uuid.Parse(eventIdString)
 		if err != nil {

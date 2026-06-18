@@ -63,13 +63,13 @@ func (s *Store) StoreRefreshToken(ctx context.Context, userId uuid.UUID, tokenHa
 	return nil
 }
 
-func (s *Store) GetRefreshRowByHash(ctx context.Context, hashedRefreshToken string) (*models.RefreshTokenRow, error) {
+func (s *Store) GetRefreshRowByHash(ctx context.Context, hashedRefreshToken string) (*models.RefreshTokensRow, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT * FROM refresh_tokens
 		WHERE token_hash = $1
 		`, hashedRefreshToken)
 
-	var token models.RefreshTokenRow
+	var token models.RefreshTokensRow
 	err := row.Scan(&token.Id, &token.UserId, &token.TokenHash, &token.ExpiresAt, &token.LastUsedAt, &token.CreatedAt)
 	if err != nil {
 		return nil, err

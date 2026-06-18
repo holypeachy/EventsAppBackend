@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var model models.RegisterModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
@@ -31,7 +31,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPass, err := bcrypt.GenerateFromPassword([]byte(model.Password), bcrypt.DefaultCost)
+	hashedPass, err := bcrypt.GenerateFromPassword([]byte(model.Password), auth.BcryptCost)
 	if err != nil {
 		log.Println("error:", err)
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
@@ -51,7 +51,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respUser := models.LoginResponseUser{
+	respUser := models.LoginUserResponse{
 		Id:       user.Id,
 		Username: user.Username,
 		Email:    user.Email,
@@ -63,11 +63,11 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		User:         &respUser,
 	}
 
-	log.Println("log: user registered,", user.Username)
+	log.Println("log: user registered with username", user.Username)
 	helpers.WriteJson(w, http.StatusCreated, resp)
 }
 
-func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var model models.LoginModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
@@ -93,7 +93,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(model.Password))
 	if err != nil {
-		log.Println("error: password is incorrect,", user.Username)
+		log.Println("error: password is incorrect for user", user.Username)
 		helpers.WriteErr(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
@@ -105,7 +105,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respUser := models.LoginResponseUser{
+	respUser := models.LoginUserResponse{
 		Id:       user.Id,
 		Username: user.Username,
 		Email:    user.Email,
@@ -121,7 +121,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, resp)
 }
 
-func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var model models.RefreshModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
@@ -151,7 +151,7 @@ func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			helpers.HandlePgxError(err)
 		}
-		helpers.WriteErr(w, http.StatusUnauthorized, "login again")
+		helpers.WriteErr(w, http.StatusUnauthorized, "must login again")
 		return
 	}
 
@@ -161,11 +161,11 @@ func (h *Handler) RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	log.Println("log: token valid, sending new access token")
+	log.Println("log: refresh token valid, sending new access token")
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"accessToken": access})
 }
 
-func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	var model models.LogoutModel
 
 	err := json.NewDecoder(r.Body).Decode(&model)
@@ -190,7 +190,7 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("log: user logged out")
-	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user logged out"})
+	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user successfully logged out"})
 }
 
 func (h *Handler) issueLoginTokens(ctx context.Context, userId uuid.UUID) (accessToken string, rawRefresh string, err error) {

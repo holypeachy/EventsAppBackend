@@ -72,7 +72,7 @@ func (model *PatchGroupModel) Validate() error {
 
 func (model *UpdateMemberRoleModel) Validate() error {
 	role := GroupRole(strings.TrimSpace(model.Role))
-	if role == Admin || role == Member {
+	if role == GroupAdmin || role == GroupMember {
 		return nil
 	}
 
@@ -97,7 +97,7 @@ func (model *EventModelDto) Validate() error {
 
 func (model *RsvpModel) Validate() error {
 	role := ParticipantStatus(strings.TrimSpace(model.Status))
-	if role == EventGoing || role == EventMaybe || role == EventDeclined {
+	if role == PartGoing || role == PartMaybe || role == PartDeclined {
 		return nil
 	}
 

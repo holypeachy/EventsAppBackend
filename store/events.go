@@ -236,7 +236,7 @@ func (s *Store) AddParticipants(ctx context.Context, eventId uuid.UUID, particip
 				ON gm.group_id = e.group_id
 			WHERE e.id = $1 AND gm.user_id = $2
 			ON CONFLICT (event_id, user_id) DO NOTHING
-		`, eventId, currentId, models.EventInvited, models.EventParticipant)
+		`, eventId, currentId, models.PartInvited, models.EventParticipant)
 		if err != nil {
 			return err
 		}
@@ -283,7 +283,7 @@ func (s *Store) CreateEvent(ctx context.Context, groupId uuid.UUID, userId uuid.
 	_, err = tx.Exec(ctx, `
 		INSERT INTO event_participants(event_id, user_id, status, role, responded_at)
 		VALUES ($1, $2, $3, $4, NOW())
-	`, event.Id, userId, models.EventGoing, models.EventOwner)
+	`, event.Id, userId, models.PartGoing, models.EventOwner)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (s *Store) CreateEvent(ctx context.Context, groupId uuid.UUID, userId uuid.
 				ON gm.group_id = e.group_id
 			WHERE e.id = $1 AND gm.user_id = $2
 			ON CONFLICT (event_id, user_id) DO NOTHING
-		`, event.Id, participantId, models.EventInvited, models.EventParticipant)
+		`, event.Id, participantId, models.PartInvited, models.EventParticipant)
 		if err != nil {
 			return nil, err
 		}

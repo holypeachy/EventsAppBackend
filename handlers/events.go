@@ -12,7 +12,7 @@ import (
 	"github.com/holypeachy/EventsAppBackend/models"
 )
 
-func (h *Handler) GetEventsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -28,10 +28,10 @@ func (h *Handler) GetEventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helpers.WriteJson(w, http.StatusOK, events)
-
 }
-func (h *Handler) GetEventByIdHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+
+func (h *Handler) GetEventById(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -50,8 +50,8 @@ func (h *Handler) GetEventByIdHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, event)
 }
 
-func (h *Handler) GetEventParticipantsHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+func (h *Handler) GetEventParticipants(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -60,17 +60,17 @@ func (h *Handler) GetEventParticipantsHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	participants, err := h.store.GetEventParticipants(r.Context(), eventId)
+	parts, err := h.store.GetEventParticipants(r.Context(), eventId)
 	if err != nil {
 		apiErr := helpers.HandlePgxError(err)
 		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 
-	helpers.WriteJson(w, http.StatusOK, participants)
+	helpers.WriteJson(w, http.StatusOK, parts)
 }
 
-func (h *Handler) RsvpHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Rsvp(w http.ResponseWriter, r *http.Request) {
 	authUserId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -78,7 +78,7 @@ func (h *Handler) RsvpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventIdString := chi.URLParam(r, "eventId")
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *Handler) RsvpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userIdString := chi.URLParam(r, "userId")
+	userIdString := chi.URLParam(r, helpers.ParamUserId)
 
 	userId, err := uuid.Parse(userIdString)
 	if err != nil {
@@ -125,8 +125,8 @@ func (h *Handler) RsvpHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, part)
 }
 
-func (h *Handler) PatchEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+func (h *Handler) PatchEvent(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -142,6 +142,7 @@ func (h *Handler) PatchEventHandler(w http.ResponseWriter, r *http.Request) {
 		helpers.WriteErr(w, http.StatusBadRequest, "malformed request")
 		return
 	}
+
 	err = model.Validate()
 	if err != nil {
 		helpers.WriteErr(w, http.StatusBadRequest, err.Error())
@@ -158,8 +159,8 @@ func (h *Handler) PatchEventHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, event)
 }
 
-func (h *Handler) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+func (h *Handler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -178,8 +179,8 @@ func (h *Handler) DeleteEventHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "event deleted"})
 }
 
-func (h *Handler) RemoveParticipantHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+func (h *Handler) RemoveParticipant(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -188,7 +189,7 @@ func (h *Handler) RemoveParticipantHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	userIdString := chi.URLParam(r, "userId")
+	userIdString := chi.URLParam(r, helpers.ParamUserId)
 
 	userId, err := uuid.Parse(userIdString)
 	if err != nil {
@@ -199,8 +200,8 @@ func (h *Handler) RemoveParticipantHandler(w http.ResponseWriter, r *http.Reques
 
 	role, err := h.store.GetEventUserRole(r.Context(), userId, eventId)
 	if err != nil {
-		_ = helpers.HandlePgxError(err)
-		helpers.WriteErr(w, http.StatusInternalServerError, "internal server error")
+		apiErr := helpers.HandlePgxError(err)
+		helpers.WriteErr(w, apiErr.Status, apiErr.Message)
 		return
 	}
 	if role == models.EventManager || role == models.EventOwner {
@@ -218,8 +219,8 @@ func (h *Handler) RemoveParticipantHandler(w http.ResponseWriter, r *http.Reques
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "user removed from event"})
 }
 
-func (h *Handler) AddParticipantHandler(w http.ResponseWriter, r *http.Request) {
-	eventIdString := chi.URLParam(r, "eventId")
+func (h *Handler) AddParticipant(w http.ResponseWriter, r *http.Request) {
+	eventIdString := chi.URLParam(r, helpers.ParamEventId)
 
 	eventId, err := uuid.Parse(eventIdString)
 	if err != nil {
@@ -253,7 +254,7 @@ func (h *Handler) AddParticipantHandler(w http.ResponseWriter, r *http.Request) 
 	helpers.WriteJson(w, http.StatusOK, map[string]string{"status": "event participants added"})
 }
 
-func (h *Handler) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -261,7 +262,7 @@ func (h *Handler) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groupIdString := chi.URLParam(r, "groupId")
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {
@@ -299,7 +300,7 @@ func (h *Handler) CreateEventHandler(w http.ResponseWriter, r *http.Request) {
 	helpers.WriteJson(w, http.StatusCreated, eventRow)
 }
 
-func (h *Handler) GetGroupEventsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 	userId, err := helpers.ExtractUserId(r.Context())
 	if err != nil {
 		log.Println("error: failed to extract user Id from ctx")
@@ -307,7 +308,7 @@ func (h *Handler) GetGroupEventsHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	groupIdString := chi.URLParam(r, "groupId")
+	groupIdString := chi.URLParam(r, helpers.ParamGroupId)
 
 	groupId, err := uuid.Parse(groupIdString)
 	if err != nil {

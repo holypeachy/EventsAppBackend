@@ -12,13 +12,12 @@
   go get github.com/go-chi/httprate
 
 ## To Do:
-- review codebase
-- organize codebase (models, errors, constants)
-- document API for frontend
 - improve logging
 - write tests?
 
 ## Done:
-- added RequireEventOwner middleware
-- finish implementing event endpoints
-- changed event admin to event manager, and added event owner
+- reviewed codebase
+- split helpers into multiple files
+- split models into multiple files
+- added registerRoutes func in a new routes.go
+- created api documentation for the front end
