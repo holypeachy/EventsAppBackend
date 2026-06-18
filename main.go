@@ -31,11 +31,11 @@ func main() {
 	}
 	log.Println("log: db connected, connection pool created")
 
-	store := sto.NewStore(dbpool)
+	store := sto.New(dbpool)
 	jwtSecret := os.Getenv("JWT_SECRET")
 
-	handler := hdl.NewHandler(store, jwtSecret)
-	middle := mid.NewMiddleware(store, jwtSecret)
+	handler := hdl.New(store, jwtSecret)
+	middle := mid.New(store, jwtSecret)
 
 	r := chi.NewRouter()
 	registerRoutes(r, handler, middle)

@@ -16,8 +16,4 @@
 - write tests?
 
 ## Done:
-- reviewed codebase
-- split helpers into multiple files
-- split models into multiple files
-- added registerRoutes func in a new routes.go
-- created api documentation for the front end
+- updated readme

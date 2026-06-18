@@ -12,7 +12,7 @@ type Handler struct {
 	jwtSecret string
 }
 
-func NewHandler(store *store.Store, jwtSecret string) *Handler {
+func New(store *store.Store, jwtSecret string) *Handler {
 	if jwtSecret == "" {
 		panic("JWT Secret is empty")
 	}

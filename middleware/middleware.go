@@ -21,7 +21,7 @@ type Middleware struct {
 	jwtSecret string
 }
 
-func NewMiddleware(store *store.Store, jwtSecret string) *Middleware {
+func New(store *store.Store, jwtSecret string) *Middleware {
 	return &Middleware{
 		store:     store,
 		jwtSecret: jwtSecret,

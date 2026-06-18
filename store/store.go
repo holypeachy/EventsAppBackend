@@ -8,6 +8,6 @@ type Store struct {
 	pool *pgxpool.Pool
 }
 
-func NewStore(pool *pgxpool.Pool) *Store {
+func New(pool *pgxpool.Pool) *Store {
 	return &Store{pool: pool}
 }
